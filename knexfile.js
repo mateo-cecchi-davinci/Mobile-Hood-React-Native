@@ -1,15 +1,18 @@
 // Update with your config settings.
 
+require("dotenv").config();
+
 /**
  * @type { Object.<string, import("knex").Knex.Config> }
  */
+console.log("Base de datos:", process.env.DB_DATABASE);
 module.exports = {
   client: "mysql",
   connection: {
-    host: process.env.DB_HOST || "127.0.0.1",
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "mobile_hood_react_native",
+    host: process.env.DB_HOST,
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
   },
   migrations: {
     directory: "./migrations",

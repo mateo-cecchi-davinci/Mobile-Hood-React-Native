@@ -10,16 +10,23 @@ import {
 import { Stack } from "expo-router";
 import Navbar from "./components/Navbar";
 import SearchBar from "./components/SearchBar";
+import { Footer } from "./components/Footer";
+
+import Constants from "expo-constants";
+
+import AntDesign from "@expo/vector-icons/AntDesign";
+
+const API_URL = Constants.expoConfig.extra.APP_URL;
 
 export default function HomeScreen() {
   const [businesses, setBusinesses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const businessesPerPage = 6;
 
-  // Función para obtener los negocios desde la API de Laravel
+  // Función para obtener los negocios
   const fetchBusinesses = async () => {
     try {
-      const response = await fetch("http://192.168.100.35:8000/stores"); // Cambia a la URL de tu servidor
+      const response = await fetch(`${API_URL}/businesses`);
       const data = await response.json();
       setBusinesses(data); // Guarda los negocios obtenidos en el estado
     } catch (error) {
@@ -50,6 +57,17 @@ export default function HomeScreen() {
     currentPage * businessesPerPage
   );
 
+  const getBusinessLogo = (logo) => {
+    if (logo && logo.startsWith("http")) {
+      // Si el logo tiene una URL completa, usarla directamente
+      return { uri: logo };
+    }
+
+    // Aquí utilizamos la URL base de tu API + la ruta del logo
+    const logoUrl = `${API_URL}/uploads/${logo}`;
+    return { uri: logoUrl };
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -66,30 +84,45 @@ export default function HomeScreen() {
           data={businessesToShow}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Image source={{ uri: item.logo }} style={styles.logo} />
-              <Text style={styles.businessName}>{item.name}</Text>
+              <View style={styles.content}>
+                <Image
+                  source={getBusinessLogo(item.logo)}
+                  style={styles.logo}
+                />
+                <View>
+                  <View style={styles.content}>
+                    <Text style={styles.businessName}>{item.name}</Text>
+                    <AntDesign name="hearto" size={16} color="black" />
+                  </View>
+                  <View style={styles.content}>
+                    <AntDesign
+                      name="creditcard"
+                      size={16}
+                      color="black"
+                      style={styles.opacity}
+                    />
+                    <Text style={styles.cardDescriptionText}>
+                      Acepta pago online
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.raiting}>
+                <AntDesign
+                  name="star"
+                  size={16}
+                  color="orange"
+                  style={styles.starIcon}
+                />
+                <Text>3.9</Text>
+              </View>
             </View>
           )}
           keyExtractor={(item) => item.id.toString()}
-          horizontal={false} // Para que se muestren en columna
-          numColumns={2} // Muestra 2 negocios por fila
+          horizontal={false}
+          numColumns={1}
         />
-
-        {/* Botones de paginación */}
-        <View style={styles.pagination}>
-          <TouchableOpacity
-            onPress={handlePrevPage}
-            style={styles.paginationButton}
-          >
-            <Text style={styles.paginationText}>Anterior</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleNextPage}
-            style={styles.paginationButton}
-          >
-            <Text style={styles.paginationText}>Siguiente</Text>
-          </TouchableOpacity>
-        </View>
+        <Footer />
       </View>
     </>
   );
@@ -104,6 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     margin: 20,
+    marginTop: 0,
   },
   card: {
     backgroundColor: "#fff",
@@ -111,37 +145,41 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    padding: 15,
+    padding: 20,
     margin: 10,
-    width: 160,
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   logo: {
-    width: 80,
-    height: 80,
+    marginEnd: 20,
+    width: 66,
+    height: 66,
     resizeMode: "contain",
+    borderWidth: 1,
+    borderRadius: 5,
   },
   businessName: {
     fontSize: 18,
     fontWeight: "bold",
-    marginTop: 10,
+    marginEnd: 10,
   },
-  pagination: {
+  content: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-    paddingHorizontal: 20,
+    alignItems: "center",
   },
-  paginationButton: {
-    backgroundColor: "#e31010",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+  cardDescriptionText: {
+    marginStart: 5,
+    opacity: 0.75,
   },
-  paginationText: {
-    color: "#fff",
-    fontSize: 16,
+  raiting: {
+    flexDirection: "row",
+  },
+  starIcon: {
+    marginTop: 2,
+    marginEnd: 4,
+  },
+  opacity: {
+    opacity: 0.75,
   },
 });

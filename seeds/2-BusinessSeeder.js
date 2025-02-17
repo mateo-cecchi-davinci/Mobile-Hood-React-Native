@@ -146,12 +146,12 @@ exports.seed = async function (knex) {
       // Insertar en la base de datos
       await knex("businesses").insert({
         name: business.name,
-        logo: `business_logos/${uniqueFileName}`,
+        logo: `business_logos/${business.metaData}/${uniqueFileName}`,
         street: business.street,
         number: business.number,
         category: business.category,
         fk_businesses_users: business.fk_businesses_users,
-        frontPage: `business_front_pages/${uniqueFrontFileName}`,
+        frontPage: `business_front_pages/${business.metaData}/${uniqueFrontFileName}`,
       });
 
       console.log(`${business.name} added successfully!`);
