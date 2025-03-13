@@ -1449,7 +1449,7 @@ exports.seed = async function (knex) {
     const newImagePath = path.join(uploadDir, uniqueFileName);
     fs.copyFileSync(originalImagePath, newImagePath);
 
-    product.image = `products/${uniqueFileName}`;
+    product.image = `products/${product.image}${uniqueFileName}`;
   }
 
   // Insert products

@@ -28,6 +28,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 10,
     height: 60,
+    borderWidth: 1,
+    borderColor: "dark(rgb(225, 225, 225), rgb(225, 225, 225))",
   },
   icon: {
     marginRight: 10,
@@ -40,8 +42,5 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
     color: "#333",
-  },
-  stores: {
-    fontWeight: "bold",
   },
 });

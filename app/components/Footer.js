@@ -1,30 +1,66 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const Footer = () => {
+export default function Footer() {
+  const navigation = useNavigation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem("token");
+      const user = await AsyncStorage.getItem("user").then(JSON.parse);
+      setIsAuthenticated(!!token);
+      setUser(user);
+    };
+    checkAuth();
+  }, []);
+
   return (
     <View style={styles.footer}>
+      <TouchableOpacity
+        style={styles.footerContent}
+        onPress={() => navigation.navigate("Home")}
+      >
+        <AntDesign name="home" size={16} color="black" style={styles.opacity} />
+        <Text style={styles.text}>Inicio</Text>
+      </TouchableOpacity>
       <View style={styles.footerContent}>
-        <AntDesign name="home" size={16} color="black" />
-        <Text>Inicio</Text>
+        <AntDesign
+          name="hearto"
+          size={16}
+          color="black"
+          style={styles.opacity}
+        />
+        <Text style={styles.text}>Mis favoritos</Text>
       </View>
       <View style={styles.footerContent}>
-        <AntDesign name="hearto" size={16} color="black" />
-        <Text>Mis favoritos</Text>
+        <Feather
+          name="shopping-cart"
+          size={16}
+          color="black"
+          style={styles.opacity}
+        />
+        <Text style={styles.text}>Pedidos</Text>
       </View>
-      <View style={styles.footerContent}>
-        <Feather name="shopping-cart" size={16} color="black" />
-        <Text>Pedidos</Text>
-      </View>
-      <View style={styles.footerContent}>
-        <AntDesign name="user" size={16} color="black" />
-        <Text>Mi perfil</Text>
-      </View>
+      <TouchableOpacity
+        style={styles.footerContent}
+        onPress={() =>
+          navigation.navigate(isAuthenticated ? "UserProfile" : "Login", {
+            user: user,
+          })
+        }
+      >
+        <AntDesign name="user" size={16} color="black" style={styles.opacity} />
+        <Text style={styles.text}>Mi perfil</Text>
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   footer: {
@@ -35,8 +71,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   footerContent: {
-    opacity: 0.75,
     flexDirection: "column",
     alignItems: "center",
+  },
+  opacity: {
+    opacity: 0.7,
+  },
+  text: {
+    fontWeight: "bold",
+    opacity: 0.7,
+    color: "#212529",
   },
 });
