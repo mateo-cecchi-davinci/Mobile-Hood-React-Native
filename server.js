@@ -178,6 +178,7 @@ app.get("/businesses", async (req, res) => {
 app.post("/business/:id", async (req, res) => {
   try {
     const { id } = req.params; // Obtener el ID del negocio desde la URL
+    const { user } = req.body; // Obtener el ID del usuario desde el cuerpo de la solicitud
 
     // Obtener el negocio
     const business = await db("businesses")
@@ -220,9 +221,28 @@ app.post("/business/:id", async (req, res) => {
       ),
     }));
 
+    // Obtener productos del carrito del usuario para este negocio
+    const cartProducts = await db("carts")
+      .select(
+        "fk_carts_users",
+        "fk_carts_products",
+        db.raw("SUM(quantity) as quantity")
+      )
+      .join("products", "carts.fk_carts_products", "=", "products.id")
+      .join(
+        "categories",
+        "products.fk_products_categories",
+        "=",
+        "categories.id"
+      )
+      .where("fk_carts_users", user)
+      .andWhere("categories.fk_categories_businesses", id)
+      .groupBy("fk_carts_users", "fk_carts_products");
+
     return res.json({
       business,
       categories: categoriesWithProducts,
+      cart: cartProducts,
     });
   } catch (error) {
     console.error("Error al obtener los datos:", error);
@@ -236,6 +256,89 @@ app.get("/products", async (req, res) => {
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener productos" });
+  }
+});
+
+app.post("/addToCart", async (req, res) => {
+  try {
+    const { fk_carts_products, fk_carts_users, quantity } = req.body;
+
+    const existingCartItem = await db("carts")
+      .where({ fk_carts_products, fk_carts_users })
+      .first();
+
+    if (existingCartItem) {
+      await db("carts")
+        .where({ fk_carts_products, fk_carts_users })
+        .update({ quantity: existingCartItem.quantity + quantity });
+    } else {
+      await db("carts").insert({
+        fk_carts_products,
+        fk_carts_users,
+        quantity,
+      });
+    }
+
+    res.status(200).json({ message: "Producto agregado al carrito" });
+  } catch (error) {
+    res.status(500).json({ error: "Hubo un error" });
+  }
+});
+
+app.post("/deleteSelected", async (req, res) => {
+  try {
+    const { selectedProducts, user, business } = req.body;
+
+    for (const product of selectedProducts) {
+      const { product_id, quantity } = product;
+      const cartItem = await db("carts")
+        .where({
+          fk_carts_products: product_id,
+          fk_carts_users: user,
+        })
+        .first();
+
+      if (cartItem) {
+        const newQuantity = cartItem.quantity - quantity;
+        if (newQuantity > 0) {
+          await db("carts")
+            .where({
+              fk_carts_products: product_id,
+              fk_carts_users: user,
+            })
+            .update({ quantity: newQuantity });
+        } else {
+          await db("carts")
+            .where({
+              fk_carts_products: product_id,
+              fk_carts_users: user,
+            })
+            .del();
+        }
+      }
+    }
+
+    const cartProducts = await db("carts")
+      .select(
+        "fk_carts_users",
+        "fk_carts_products",
+        db.raw("SUM(quantity) as quantity")
+      )
+      .join("products", "carts.fk_carts_products", "=", "products.id")
+      .join(
+        "categories",
+        "products.fk_products_categories",
+        "=",
+        "categories.id"
+      )
+      .where("fk_carts_users", user)
+      .andWhere("categories.fk_categories_businesses", business)
+      .groupBy("fk_carts_users", "fk_carts_products");
+
+    res.status(200).json({ cart: cartProducts });
+  } catch (error) {
+    console.error("Error al eliminar productos del carrito:", error);
+    res.status(500).json({ error: "Hubo un error" });
   }
 });
 

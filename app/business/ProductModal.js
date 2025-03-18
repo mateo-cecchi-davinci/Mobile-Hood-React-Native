@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   Modal,
   View,
@@ -9,23 +10,66 @@ import {
   Image,
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ProductModal = ({ visible, onClose, product, product_image }) => {
-  // Estado para la cantidad de unidades
+const API_URL = Constants.expoConfig.extra.APP_URL;
+
+const ProductModal = ({
+  visible,
+  onClose,
+  product,
+  product_image,
+  updateSubtotal,
+  updateCart,
+}) => {
+  const navigation = useNavigation();
   const [quantity, setQuantity] = useState(1);
 
-  // Función para incrementar la cantidad
   const incrementQuantity = () => {
     setQuantity((prev) => prev + 1);
   };
 
-  // Función para decrementar la cantidad
   const decrementQuantity = () => {
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
-  // Calcular el precio total
   const totalPrice = product.price * quantity;
+
+  const addToCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const user = await AsyncStorage.getItem("user").then(JSON.parse);
+      const response = await fetch(`${API_URL}/addToCart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fk_carts_products: product.id,
+          fk_carts_users: user.id,
+          quantity,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        updateSubtotal(totalPrice);
+        updateCart({
+          fk_carts_products: product.id,
+          fk_carts_users: user.id,
+          quantity,
+        });
+        onClose();
+      } else {
+        console.error("Hubo un error:", data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   return (
     <Modal
@@ -65,7 +109,7 @@ const ProductModal = ({ visible, onClose, product, product_image }) => {
                 </View>
               </View>
               <View style={styles.add_btn_container}>
-                <TouchableOpacity style={styles.add_btn}>
+                <TouchableOpacity style={styles.add_btn} onPress={addToCart}>
                   <View style={styles.add_btn_amount_number_container}>
                     <Text style={styles.add_btn_amount_number}>{quantity}</Text>
                   </View>

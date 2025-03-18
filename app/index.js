@@ -5,6 +5,7 @@ import UserProfile from "./user/UserProfile";
 import PersonalInfo from "./user/PersonalInfo";
 import EditPersonalInfo from "./user/EditPersonalInfo";
 import BusinessProfile from "./business/BusinessProfile";
+import Order from "./business/Order";
 import Login from "./components/Login";
 import SignIn from "./components/SignIn";
 
@@ -36,6 +37,11 @@ export default function HomeScreen() {
       <Stack.Screen
         name="BusinessProfile"
         component={BusinessProfile}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Order"
+        component={Order}
         options={{ headerShown: false }}
       />
       <Stack.Screen

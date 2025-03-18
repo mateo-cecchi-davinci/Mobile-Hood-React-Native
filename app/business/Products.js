@@ -5,7 +5,7 @@ import ProductModal from "./ProductModal";
 
 const API_URL = Constants.expoConfig.extra.APP_URL;
 
-export default function Products({ products }) {
+export default function Products({ products, updateSubtotal, updateCart }) {
   const [modalVisible, setModalVisible] = useState(false);
 
   const toggleModal = (product_id, is_visible) => {
@@ -13,11 +13,7 @@ export default function Products({ products }) {
   };
 
   const getProductImage = (image) => {
-    // Aquí utilizamos la URL base de tu API + la ruta del logo
-
-    const imageUrl = `${API_URL}/uploads/${image}`;
-
-    return { uri: imageUrl };
+    return { uri: `${API_URL}/uploads/${image}` };
   };
 
   if (products.length > 0) {
@@ -49,6 +45,8 @@ export default function Products({ products }) {
               onClose={() => toggleModal(product.id, false)}
               product={product}
               product_image={getProductImage(product.image)}
+              updateSubtotal={updateSubtotal}
+              updateCart={updateCart}
             />
           </View>
         ))}
