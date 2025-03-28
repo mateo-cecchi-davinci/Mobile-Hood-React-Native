@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 
 const db = knex(require("./knexfile.js"));
 const app = express();
+const axios = require("axios");
 
 const { body, validationResult } = require("express-validator");
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -339,6 +340,180 @@ app.post("/deleteSelected", async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar productos del carrito:", error);
     res.status(500).json({ error: "Hubo un error" });
+  }
+});
+
+app.post("/mpPaymentNotification", async (req, res) => {
+  try {
+    // Verificar si el payload contiene el ID del pago
+    const paymentId = req.body?.data?.id;
+    if (!paymentId) {
+      return res.status(400).json({ error: "ID de pago no proporcionado" });
+    }
+
+    // URL de la API de Mercado Pago para obtener los detalles del pago
+    const url = `https://api.mercadopago.com/v1/payments/${paymentId}`;
+
+    // Realizar la solicitud GET a la API de Mercado Pago
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.EXPO_PUBLIC_MERCADO_PAGO_ACCESS_TOKEN}`,
+      },
+    });
+
+    const data = response.data;
+
+    // Extraer los datos necesarios del pago
+    const email = data.additional_info.payer.first_name;
+    const payment = data.transaction_amount;
+    const business = data.metadata.business;
+    const items = data.additional_info.items;
+
+    // Buscar el usuario en la base de datos
+    const user = await db("users")
+      .select("id")
+      .where({ email, is_active: true })
+      .first();
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Crear una nueva orden en la base de datos
+    const [order] = await db("orders").insert(
+      {
+        state: "Pendiente",
+        fk_orders_users: user.id,
+        payment,
+        created_at: new Date(),
+        business_id: business.id,
+      },
+      ["id"]
+    );
+
+    // Procesar los productos de la orden
+    for (const item of items) {
+      const product = await db("products")
+        .where({ id: item.id, is_active: true })
+        .andWhere("stock", ">", 0)
+        .first();
+
+      if (product) {
+        // Asociar el producto con la orden
+        await db("orders_products").insert({
+          fk_orders_products_orders: order,
+          fk_orders_products_products: product.id,
+          amount: item.quantity,
+        });
+
+        // Actualizar el stock del producto
+        await db("products")
+          .where({ id: product.id })
+          .decrement("stock", item.quantity);
+
+        // Eliminar el producto del carrito del usuario
+        await db("carts")
+          .where({ fk_carts_users: user.id, fk_carts_products: product.id })
+          .del();
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Hubo un error" });
+  }
+});
+
+app.get("/orders/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const ordersWithDetails = await db("orders_products")
+      .select(
+        "orders_products.amount",
+        "orders.id as order_id",
+        "orders.state",
+        "orders.payment",
+        "orders.created_at",
+        "orders.updated_at",
+        "businesses.id as business_id",
+        "businesses.name as business_name",
+        "businesses.logo as business_logo",
+        db.raw(`(
+      SELECT GROUP_CONCAT(CONCAT_WS('|||', 
+        business_hours.day_of_week, 
+        business_hours.opening_time, 
+        business_hours.closing_time)
+      ) 
+      FROM business_hours 
+      WHERE business_hours.fk_business_hours_business = businesses.id
+    ) as business_hours`),
+        "products.id as product_id",
+        "products.model",
+        "products.image as product_image",
+        "products.description",
+        "products.price"
+      )
+      .innerJoin(
+        "orders",
+        "orders_products.fk_orders_products_orders",
+        "orders.id"
+      )
+      .innerJoin("businesses", "orders.business_id", "businesses.id")
+      .innerJoin(
+        "products",
+        "orders_products.fk_orders_products_products",
+        "products.id"
+      )
+      .where("orders.fk_orders_users", userId)
+      .groupBy(
+        "orders_products.amount",
+        "orders.id",
+        "businesses.id",
+        "products.id"
+      );
+
+    // Procesar los resultados
+    const orders_products = ordersWithDetails.map((row) => ({
+      amount: row.amount,
+      order: {
+        id: row.order_id,
+        state: row.state,
+        payment: row.payment,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        business: {
+          id: row.business_id,
+          name: row.business_name,
+          logo: row.business_logo,
+          business_hours: row.business_hours
+            ? row.business_hours.split(",").map((h) => {
+                const [day, open, close] = h.split("|||");
+                return {
+                  day_of_week: parseInt(day),
+                  opening_time: open,
+                  closing_time: close,
+                };
+              })
+            : [],
+        },
+      },
+      product: {
+        id: row.product_id,
+        model: row.model,
+        image: row.product_image,
+        description: row.description,
+        price: row.price,
+      },
+    }));
+
+    res.json(orders_products);
+  } catch (error) {
+    console.error("Error en /orders:", error);
+    res.status(500).json({
+      error: "Error al obtener los pedidos",
+      details: error.message,
+    });
   }
 });
 

@@ -29,7 +29,7 @@ export default function Footer() {
         <AntDesign name="home" size={16} color="black" style={styles.opacity} />
         <Text style={styles.text}>Inicio</Text>
       </TouchableOpacity>
-      <View style={styles.footerContent}>
+      <TouchableOpacity onPress={() => {}} style={styles.footerContent}>
         <AntDesign
           name="hearto"
           size={16}
@@ -37,8 +37,15 @@ export default function Footer() {
           style={styles.opacity}
         />
         <Text style={styles.text}>Mis favoritos</Text>
-      </View>
-      <View style={styles.footerContent}>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate(isAuthenticated ? "Orders" : "Login", {
+            user: user,
+          })
+        }
+        style={styles.footerContent}
+      >
         <Feather
           name="shopping-cart"
           size={16}
@@ -46,7 +53,7 @@ export default function Footer() {
           style={styles.opacity}
         />
         <Text style={styles.text}>Pedidos</Text>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.footerContent}
         onPress={() =>
@@ -69,6 +76,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     padding: 20,
     backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderColor: "#dee2e6",
   },
   footerContent: {
     flexDirection: "column",

@@ -141,8 +141,8 @@ export default function CartModal({
           </View>
           <Text style={styles.subtitle}>Vas a retirar:</Text>
           {cart.map((item) => {
-            const product = productMap.get(item.fk_carts_products); // Obtener el producto directamente
-            if (!product) return null; // Si el producto no existe, no renderizar nada
+            const product = productMap.get(item.fk_carts_products);
+            if (!product) return null;
 
             return (
               <View key={product.id} style={styles.product_cards_container}>
@@ -150,7 +150,7 @@ export default function CartModal({
                   <View style={styles.product_amount}>
                     {edit ? (
                       <CheckBox
-                        isChecked={selectedProductMap.has(product.id)} // Verificación en O(1)
+                        isChecked={selectedProductMap.has(product.id)}
                         onClick={() => handleCheckboxChange(product.id, 1)}
                       />
                     ) : (
@@ -178,8 +178,9 @@ export default function CartModal({
                 onClose();
                 navigation.navigate("Order", {
                   user: user,
+                  business: business,
                   cart: cart,
-                  categories: categories,
+                  products: productMap,
                   subtotal: subtotal,
                 });
               }}

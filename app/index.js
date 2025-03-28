@@ -1,6 +1,7 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import Home from "./components/Home";
+import Orders from "./user/Orders";
 import UserProfile from "./user/UserProfile";
 import PersonalInfo from "./user/PersonalInfo";
 import EditPersonalInfo from "./user/EditPersonalInfo";
@@ -17,6 +18,11 @@ export default function HomeScreen() {
       <Stack.Screen
         name="Home"
         component={Home}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Orders"
+        component={Orders}
         options={{ headerShown: false }}
       />
       <Stack.Screen
