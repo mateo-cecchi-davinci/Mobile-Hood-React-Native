@@ -60,7 +60,7 @@ export default function Order() {
         },
         auto_return: "approved",
         notification_url:
-          "https://0152-45-186-25-100.ngrok-free.app/mpPaymentNotification",
+          "https://721a-45-186-25-100.ngrok-free.app/mpPaymentNotification",
       };
 
       try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   Image,
   StyleSheet,
@@ -12,12 +12,19 @@ import Feather from "@expo/vector-icons/Feather";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Constants from "expo-constants";
 import Footer from "../components/Footer";
+import OrdersFiltersModal from "./OrdersFiltersModal";
 
 export default function Orders() {
   const API_URL = Constants.expoConfig.extra.APP_URL;
+  const navigation = useNavigation();
   const route = useRoute();
   const user = route.params?.user;
-  const [orders_products, setOrdersProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [modal, setModal] = useState(false);
+  const [filter, setFilter] = useState({
+    status: "",
+    period: "",
+  });
 
   const getImage = (image) => {
     return { uri: `${API_URL}/uploads/${image}` };
@@ -28,7 +35,7 @@ export default function Orders() {
       const response = await fetch(`${API_URL}/orders/${user.id}`);
       const data = await response.json();
 
-      setOrdersProducts(data);
+      setOrders(data);
     } catch (error) {
       console.error("Error al obtener los pedidos:", error);
     }
@@ -89,90 +96,192 @@ export default function Orders() {
     return false;
   };
 
-  if (!orders_products) return <Text>Cargando...</Text>;
+  const checkDateInPeriod = (order_date, selected_period) => {
+    if (!selected_period) return true; // Si no hay filtro, devuelve true
+
+    const orderDate = new Date(order_date);
+    const currentDate = new Date();
+
+    // Calculamos la diferencia en milisegundos
+    const diffTime = currentDate - orderDate;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24); // Convertir a días
+
+    switch (selected_period) {
+      case "Última semana":
+        return diffDays <= 7;
+      case "Últimos 15 días":
+        return diffDays <= 15;
+      case "Últimos 30 días":
+        return diffDays <= 30;
+      case "Últimos 3 meses":
+        return diffDays <= 90;
+      case "Últimos 6 meses":
+        return diffDays <= 180;
+      default:
+        return true; // Por defecto mostrar todos
+    }
+  };
+
+  const filteredOrders = orders.filter((order) => {
+    const statusMatch =
+      !filter.status || order.state === filter.status.slice(0, -1);
+
+    const periodMatch = checkDateInPeriod(order.created_at, filter.period);
+
+    return statusMatch && periodMatch;
+  });
+
+  const toggleModal = () => {
+    setModal(!modal);
+  };
+
+  const totalProducts = (products) => {
+    const totalProducts = products.reduce(
+      (acc, product) => acc + product.amount,
+      0
+    );
+    return `${totalProducts} producto${totalProducts !== 1 ? "s" : ""}`;
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Mis pedidos</Text>
-          <Feather name="shopping-cart" size={24} color="black" />
-        </View>
-        <View style={styles.filters}>
-          <TouchableOpacity onPress={() => {}} style={styles.filters_btn}>
-            <AntDesign name="filter" size={16} color="black" />
-            <Text style={styles.filters_text}>Filtros</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}} style={styles.filter_options}>
-            <Text style={styles.btn_text}>Entregados</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}} style={styles.filter_options}>
-            <Text style={styles.btn_text}>Cancelados</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.orders_cards}>
-          {orders_products.map((order_product) => (
-            <View key={order_product.order.id} style={styles.card}>
-              {handleBusinessState(
-                order_product.order.business.business_hours
-              ) && <Text style={styles.business_state}>Cerrado por hoy</Text>}
-              <TouchableOpacity onPress={() => {}} style={styles.card_body}>
-                <Image
-                  source={getImage(order_product.order.business.logo)}
-                  style={styles.business_logo}
-                />
-                <View>
-                  <View style={styles.order_state_container}>
-                    <Text style={styles.order_state}>
-                      {order_product.order.state}
-                    </Text>
-                    {order_product.order.state != "Pendiente" && (
-                      <Text style={styles.order_date}>
-                        {formatDate(order_product.order.updated_at)}
-                      </Text>
-                    )}
-                  </View>
-                  <Text style={styles.business_name}>
-                    {order_product.order.business.name}
-                  </Text>
-                  <Text style={styles.business_price}>
-                    $ {order_product.order.payment} ·{" "}
-                    {`${order_product.amount} producto${
-                      order_product.amount > 1 ? "s" : ""
-                    }`}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.line}></View>
-              <View style={styles.card_footer}>
-                <TouchableOpacity onPress={() => {}} style={styles.footer_btns}>
-                  <Feather
-                    name="star"
-                    size={16}
-                    color="black"
-                    style={styles.footer_icon}
-                  />
-                  <Text style={styles.footer_text}>Opinar</Text>
+    <>
+      <OrdersFiltersModal
+        visible={modal}
+        onClose={toggleModal}
+        setFilter={setFilter}
+      />
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Mis pedidos</Text>
+            <Feather name="shopping-cart" size={24} color="black" />
+          </View>
+          {filteredOrders.length > 0 ? (
+            <>
+              <View style={styles.filters}>
+                <TouchableOpacity
+                  onPress={toggleModal}
+                  style={styles.filters_btn}
+                >
+                  <AntDesign name="filter" size={16} color="black" />
+                  <Text style={styles.filters_text}>Filtros</Text>
                 </TouchableOpacity>
-                <View style={styles.footer_line}></View>
-                <TouchableOpacity onPress={() => {}} style={styles.footer_btns}>
-                  <AntDesign
-                    name="reload1"
-                    size={16}
-                    color="black"
-                    style={styles.footer_icon}
-                  />
-                  <Text style={styles.footer_text}>Repetir</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setFilter({
+                      status: "Entregados",
+                      period: "",
+                    })
+                  }
+                  style={styles.filter_options}
+                >
+                  <Text style={styles.btn_text}>Entregados</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    setFilter({
+                      status: "Rechazados",
+                      period: "",
+                    })
+                  }
+                  style={styles.filter_options}
+                >
+                  <Text style={styles.btn_text}>Cancelados</Text>
                 </TouchableOpacity>
               </View>
+              <ScrollView style={styles.orders_cards}>
+                {filteredOrders.map((order) => (
+                  <View key={order.id} style={styles.card}>
+                    {handleBusinessState(order.business.business_hours) && (
+                      <Text style={styles.business_state}>Cerrado por hoy</Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("OrderInfo", {
+                          order: order,
+                        })
+                      }
+                      style={styles.card_body}
+                    >
+                      <Image
+                        source={getImage(order.business.logo)}
+                        style={styles.business_logo}
+                      />
+                      <View>
+                        <View style={styles.order_state_container}>
+                          <Text style={styles.order_state}>{order.state}</Text>
+                          {order.state != "Pendiente" && (
+                            <Text style={styles.order_date}>
+                              {formatDate(order.updated_at)}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.business_name}>
+                          {order.business.name}
+                        </Text>
+                        <Text style={styles.business_price}>
+                          $ {order.payment} · {totalProducts(order.products)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.line}></View>
+                    <View style={styles.card_footer}>
+                      <TouchableOpacity
+                        onPress={() => {}}
+                        style={styles.card_footer_btns}
+                      >
+                        <Feather
+                          name="star"
+                          size={16}
+                          color="black"
+                          style={styles.card_footer_icon}
+                        />
+                        <Text style={styles.card_footer_text}>Opinar</Text>
+                      </TouchableOpacity>
+                      <View style={styles.card_footer_line}></View>
+                      <TouchableOpacity
+                        onPress={() => {}}
+                        style={styles.card_footer_btns}
+                      >
+                        <AntDesign
+                          name="reload1"
+                          size={16}
+                          color="black"
+                          style={styles.card_footer_icon}
+                        />
+                        <Text style={styles.card_footer_text}>Repetir</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          ) : (
+            <View style={styles.no_filters_found_container}>
+              <Image
+                source={require("../assets/no_filters_found.jpeg")}
+                style={styles.no_filters_img}
+              />
+              <Text style={styles.no_filters_title}>
+                No encontramos pedidos para estos filtros
+              </Text>
+              <Text style={styles.no_filters_subtitle}>
+                Por favor, limpialos y probá con otros.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setFilter({ status: "", period: "" })}
+                style={styles.no_filters_btn}
+              >
+                <Text style={styles.no_filters_btn_text}>Limpiar filtros</Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </ScrollView>
+          )}
+        </View>
+        <View style={styles.footer}>
+          <Footer />
+        </View>
       </View>
-      <View style={styles.footer}>
-        <Footer />
-      </View>
-    </View>
+    </>
   );
 }
 
@@ -222,7 +331,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   orders_cards: {
-    maxHeight: 550,
+    maxHeight: 630,
   },
   card: {
     padding: 10,
@@ -282,21 +391,50 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     marginBottom: 5,
   },
-  footer_btns: {
+  card_footer_btns: {
     flexDirection: "row",
     alignItems: "center",
   },
-  footer_icon: {
+  card_footer_icon: {
     marginEnd: 5,
   },
-  footer_text: {
+  card_footer_text: {
     fontWeight: "bold",
     textDecorationLine: "underline",
   },
-  footer_line: {
+  card_footer_line: {
     height: "100%",
     borderEndWidth: 1,
     borderEndColor: "#dee2e6",
+  },
+  no_filters_found_container: {
+    justifyContent: "center",
+    alignItems: "center",
+    height: "85%",
+  },
+  no_filters_img: {
+    width: 120,
+    height: 120,
+  },
+  no_filters_title: {
+    fontWeight: "bold",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  no_filters_subtitle: {
+    fontSize: 12,
+    marginBottom: 25,
+  },
+  no_filters_btn: {
+    backgroundColor: "#e31010",
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    borderRadius: 3,
+  },
+  no_filters_btn_text: {
+    fontWeight: "600",
+    fontSize: 12,
+    color: "#f8f9fa",
   },
   footer: {
     position: "absolute",

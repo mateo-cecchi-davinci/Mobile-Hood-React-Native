@@ -439,15 +439,18 @@ app.get("/orders/:userId", async (req, res) => {
         "businesses.id as business_id",
         "businesses.name as business_name",
         "businesses.logo as business_logo",
+        "businesses.frontPage as business_frontPage",
+        "businesses.street as business_street",
+        "businesses.number as business_number",
         db.raw(`(
-      SELECT GROUP_CONCAT(CONCAT_WS('|||', 
-        business_hours.day_of_week, 
-        business_hours.opening_time, 
-        business_hours.closing_time)
-      ) 
-      FROM business_hours 
-      WHERE business_hours.fk_business_hours_business = businesses.id
-    ) as business_hours`),
+          SELECT GROUP_CONCAT(CONCAT_WS('|||', 
+            business_hours.day_of_week, 
+            business_hours.opening_time, 
+            business_hours.closing_time)
+          ) 
+          FROM business_hours 
+          WHERE business_hours.fk_business_hours_business = businesses.id
+        ) as business_hours`),
         "products.id as product_id",
         "products.model",
         "products.image as product_image",
@@ -465,47 +468,55 @@ app.get("/orders/:userId", async (req, res) => {
         "orders_products.fk_orders_products_products",
         "products.id"
       )
-      .where("orders.fk_orders_users", userId)
-      .groupBy(
-        "orders_products.amount",
-        "orders.id",
-        "businesses.id",
-        "products.id"
-      );
+      .where("orders.fk_orders_users", userId);
 
-    // Procesar los resultados
-    const orders_products = ordersWithDetails.map((row) => ({
-      amount: row.amount,
-      order: {
-        id: row.order_id,
-        state: row.state,
-        payment: row.payment,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        business: {
-          id: row.business_id,
-          name: row.business_name,
-          logo: row.business_logo,
-          business_hours: row.business_hours
-            ? row.business_hours.split(",").map((h) => {
-                const [day, open, close] = h.split("|||");
-                return {
-                  day_of_week: parseInt(day),
-                  opening_time: open,
-                  closing_time: close,
-                };
-              })
-            : [],
-        },
-      },
-      product: {
+    // Procesar los resultados agrupando órdenes y productos
+    const ordersMap = ordersWithDetails.reduce((acc, row) => {
+      const orderId = row.order_id;
+
+      if (!acc.has(orderId)) {
+        acc.set(orderId, {
+          id: orderId,
+          state: row.state,
+          payment: row.payment,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          business: {
+            id: row.business_id,
+            name: row.business_name,
+            logo: row.business_logo,
+            frontPage: row.business_frontPage,
+            street: row.business_street,
+            number: row.business_number,
+            business_hours: row.business_hours
+              ? row.business_hours.split(",").map((h) => {
+                  const [day, open, close] = h.split("|||");
+                  return {
+                    day_of_week: parseInt(day),
+                    opening_time: open,
+                    closing_time: close,
+                  };
+                })
+              : [],
+          },
+          products: [],
+        });
+      }
+
+      const order = acc.get(orderId);
+      order.products.push({
         id: row.product_id,
         model: row.model,
         image: row.product_image,
         description: row.description,
         price: row.price,
-      },
-    }));
+        amount: row.amount,
+      });
+
+      return acc;
+    }, new Map());
+
+    const orders_products = Array.from(ordersMap.values());
 
     res.json(orders_products);
   } catch (error) {
