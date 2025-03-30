@@ -5,7 +5,7 @@ export default function Navbar() {
   return (
     <View style={styles.navbar}>
       <Image
-        source={require("../assets/logo_circle.png")}
+        source={require("../assets/logos/logo_circle.png")}
         style={styles.logo}
       />
     </View>

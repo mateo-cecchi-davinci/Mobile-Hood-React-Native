@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import Constants from "expo-constants";
 import Footer from "../components/Footer";
 import OrdersFiltersModal from "./OrdersFiltersModal";
@@ -163,7 +164,7 @@ export default function Orders() {
                   onPress={toggleModal}
                   style={styles.filters_btn}
                 >
-                  <AntDesign name="filter" size={16} color="black" />
+                  <Ionicons name="options-outline" size={16} color="black" />
                   <Text style={styles.filters_text}>Filtros</Text>
                 </TouchableOpacity>
                 <TouchableOpacity

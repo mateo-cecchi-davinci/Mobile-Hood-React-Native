@@ -2,6 +2,7 @@ import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React from "react";
 import Footer from "../components/Footer";
 import { useNavigation } from "@react-navigation/native";
@@ -66,9 +67,17 @@ export default function UserProfile() {
           </View>
           <Entypo name="chevron-right" size={16} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menu_btn_container}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Partners")}
+          style={styles.menu_btn_container}
+        >
           <View style={styles.menu_btn_text_container}>
-            <Entypo name="shop" size={16} color="black" style={styles.icon} />
+            <MaterialIcons
+              name="storefront"
+              size={16}
+              color="black"
+              style={styles.icon}
+            />
             <Text>Registrar mi negocio</Text>
           </View>
           <Entypo name="chevron-right" size={16} color="black" />
