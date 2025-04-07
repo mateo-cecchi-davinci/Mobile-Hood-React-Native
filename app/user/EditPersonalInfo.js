@@ -11,14 +11,14 @@ import Entypo from "@expo/vector-icons/Entypo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
+const API_URL = Constants.expoConfig.extra.APP_URL;
+
 export default function EditPersonalInfo() {
   const navigation = useNavigation();
   const route = useRoute();
   const user = route.params?.user;
   const [name, setName] = useState(user?.name);
   const [lastname, setLastName] = useState(user?.lastname);
-
-  const API_URL = Constants.expoConfig.extra.APP_URL;
 
   const editPersonalInfo = async () => {
     try {

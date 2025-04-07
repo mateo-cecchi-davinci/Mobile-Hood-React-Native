@@ -58,7 +58,7 @@ export default function Footer() {
         style={styles.footerContent}
         onPress={() =>
           navigation.navigate(isAuthenticated ? "UserProfile" : "Login", {
-            user: user,
+            user,
           })
         }
       >

@@ -3,10 +3,14 @@ import { useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import Footer from "../components/Footer";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.APP_URL;
 
 export default function UserProfile() {
   const navigation = useNavigation();
@@ -17,6 +21,21 @@ export default function UserProfile() {
     await AsyncStorage.removeItem("token");
     await AsyncStorage.removeItem("user");
     navigation.navigate("Home");
+  };
+
+  const handleDashboard = async () => {
+    try {
+      const id = user.id;
+      const response = await fetch(`${API_URL}/dashboard/${id}`);
+      const data = await response.json();
+
+      navigation.navigate("Dashboard", {
+        business: data,
+        user: user,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (
@@ -68,7 +87,7 @@ export default function UserProfile() {
           <Entypo name="chevron-right" size={16} color="black" />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => navigation.navigate("Partners")}
+          onPress={() => navigation.navigate("Partners", { user: user })}
           style={styles.menu_btn_container}
         >
           <View style={styles.menu_btn_text_container}>
@@ -82,7 +101,27 @@ export default function UserProfile() {
           </View>
           <Entypo name="chevron-right" size={16} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menu_btn_container} onPress={logout}>
+        {user.is_partner && (
+          <TouchableOpacity
+            style={styles.menu_btn_container}
+            onPress={() => handleDashboard()}
+          >
+            <View style={styles.menu_btn_text_container}>
+              <MaterialCommunityIcons
+                name="monitor-dashboard"
+                size={16}
+                color="black"
+                style={styles.icon}
+              />
+              <Text>Dashboard</Text>
+            </View>
+            <Entypo name="chevron-right" size={16} color="black" />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={styles.menu_btn_container}
+          onPress={() => logout}
+        >
           <View style={styles.menu_btn_text_container}>
             <AntDesign
               name="logout"

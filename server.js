@@ -3,8 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const knex = require("knex");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 
 const db = knex(require("./knexfile.js"));
 const app = express();
@@ -15,11 +18,6 @@ const SECRET_KEY = process.env.SECRET_KEY;
 
 app.use(cors());
 app.use(express.json());
-
-// Rutas
-app.get("/", (req, res) => {
-  res.send("API funcionando 🚀");
-});
 
 const verifyToken = (req, res, next) => {
   const token = req.headers["authorization"];
@@ -35,6 +33,36 @@ const verifyToken = (req, res, next) => {
     return res.status(401).json({ error: "Token inválido o expirado" });
   }
 };
+
+const generateUniqueFileName = (originalFileName) => {
+  const hash = crypto.createHash("sha256");
+  hash.update(originalFileName + Date.now().toString());
+  return hash.digest("hex") + path.extname(originalFileName);
+};
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.fieldname === "logo") {
+      cb(null, path.join(__dirname, "uploads", "business_logos"));
+    } else if (file.fieldname === "frontPage") {
+      cb(null, path.join(__dirname, "uploads", "business_front_pages"));
+    } else if (file.fieldname === "image") {
+      cb(null, path.join(__dirname, "uploads", "products"));
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueFileName = generateUniqueFileName(file.originalname);
+    cb(null, uniqueFileName);
+  },
+});
+
+// Middleware de `multer`
+const upload = multer({ storage });
+
+// Rutas
+app.get("/", (req, res) => {
+  res.send("API funcionando 🚀");
+});
 
 app.post(
   "/login",
@@ -53,10 +81,7 @@ app.post(
       const { email, password } = req.body;
 
       // Buscar usuario en la base de datos
-      const user = await db("users")
-        .select("id", "name", "lastname", "email", "phone", "password")
-        .where({ email })
-        .first();
+      const user = await db("users").where({ email }).first();
 
       if (!user) {
         return res.status(401).json({ error: "Credenciales inválidas" });
@@ -89,6 +114,7 @@ app.post(
           lastname: user.lastname,
           email: user.email,
           phone: user.phone,
+          is_partner: user.is_partner,
         },
       });
     } catch (error) {
@@ -527,6 +553,403 @@ app.get("/orders/:userId", async (req, res) => {
     });
   }
 });
+
+app.post(
+  "/signBusiness",
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "frontPage", maxCount: 1 },
+  ]),
+  [
+    body("businessName").isString().isLength({ max: 255 }).notEmpty(),
+    body("street").isString().isLength({ max: 255 }).notEmpty(),
+    body("number").isString().isLength({ max: 255 }).notEmpty(),
+    body("lat")
+      .matches(/^(-?\d+(\.\d+)?)$/)
+      .withMessage("Latitud inválida"),
+    body("lng")
+      .matches(/^(-?\d+(\.\d+)?)$/)
+      .withMessage("Longitud inválida"),
+    body("email").isEmail().isLength({ max: 255 }).notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { businessName, street, number, lat, lng, email } = req.body;
+
+      const user = await db("users").where({ email }).first();
+
+      if (user) {
+        const logoPath = path.relative(
+          path.join(__dirname, "uploads"),
+          req.files.logo[0].path
+        );
+        const frontPagePath = path.relative(
+          path.join(__dirname, "uploads"),
+          req.files.frontPage[0].path
+        );
+
+        const [business] = await db("businesses").insert(
+          {
+            name: businessName,
+            logo: logoPath,
+            frontPage: frontPagePath,
+            street,
+            number,
+            fk_businesses_users: user.id,
+          },
+          ["id"]
+        );
+
+        await db("locations").insert({
+          lng,
+          lat,
+          fk_locations_businesses: business,
+        });
+
+        await db("users").where({ id: user.id }).update({ is_partner: 1 });
+
+        res.status(201).json({
+          message: "Negocio registrado con éxito",
+        });
+      } else {
+        res.status(404).json({
+          error: "Usuario no encontrado",
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        error: "Error",
+        details: error.message,
+      });
+    }
+  }
+);
+
+app.get("/dashboard/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await db("businesses")
+      .where({ fk_businesses_users: id })
+      .then(async (businesses) => {
+        return Promise.all(
+          businesses.map(async (business) => {
+            const categories = await db("categories")
+              .where("fk_categories_businesses", business.id)
+              .then(async (categories) => {
+                return Promise.all(
+                  categories.map(async (category) => {
+                    const products = await db("products").where(
+                      "fk_products_categories",
+                      category.id
+                    );
+                    return { ...category, products };
+                  })
+                );
+              });
+
+            const orders = await db("orders").where("business_id", business.id);
+
+            const business_hours = await db("business_hours").where(
+              "fk_business_hours_business",
+              business.id
+            );
+
+            return {
+              ...business,
+              categories,
+              orders,
+              business_hours,
+            };
+          })
+        );
+      });
+
+    res.json(business[0]);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post("/editCategoryState", async (req, res) => {
+  try {
+    const { id, categoryState } = req.body;
+
+    await db("categories").where({ id }).update({ is_active: categoryState });
+
+    res.status(201).json({
+      message: "Estado actualizado",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post("/editProductState", async (req, res) => {
+  try {
+    const { id, productState } = req.body;
+
+    await db("products").where({ id }).update({ is_active: productState });
+
+    res.status(201).json({
+      message: "Estado actualizado",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post(
+  "/addCategory",
+  [body("name").isString().isLength({ max: 255 }).notEmpty()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { name, business } = req.body;
+
+      const existing = await db("categories")
+        .where({ name, fk_categories_businesses: business })
+        .first();
+
+      if (existing) {
+        return res.status(400).json({ error: "La categoría ya existe" });
+      }
+
+      await db("categories").insert({
+        name,
+        fk_categories_businesses: business,
+      });
+
+      const category = await db("categories")
+        .orderBy("id", "desc")
+        .select("*")
+        .first();
+
+      res.status(201).json({
+        message: "Categoría creada con éxito",
+        category: category,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        error: "Error",
+        details: error.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/editCategory",
+  [body("name").isString().isLength({ max: 255 }).notEmpty()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { id, name } = req.body;
+
+      await db("categories").where({ id }).update({ name });
+
+      const category = await db("categories").select("*").where({ id }).first();
+
+      res.status(201).json({
+        message: "Categoría editada con éxito",
+        category: category,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        error: "Error",
+        details: error.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/addProduct",
+  upload.fields([{ name: "image", maxCount: 1 }]),
+  [
+    body("model").isString().isLength({ max: 255 }).notEmpty(),
+    body("description").isString().isLength({ max: 255 }).notEmpty(),
+    body("brand").isString().isLength({ max: 255 }).notEmpty(),
+    body("price").isString().isLength({ max: 255 }).notEmpty(),
+    body("stock").isString().isLength({ max: 255 }).notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { model, description, brand, price, stock, category } = req.body;
+
+      const imagePath = path.relative(
+        path.join(__dirname, "uploads"),
+        req.files.image[0].path
+      );
+
+      const existing = await db("products")
+        .where({ model, fk_products_categories: category })
+        .first();
+
+      if (existing) {
+        return res.status(400).json({ error: "El producto ya existe" });
+      }
+
+      await db("products").insert({
+        model,
+        image: imagePath,
+        description,
+        brand,
+        price: Number(price),
+        stock,
+        fk_products_categories: category,
+      });
+
+      const product = await db("products")
+        .orderBy("id", "desc")
+        .select("*")
+        .first();
+
+      res.status(201).json({
+        message: "Producto creado con éxito",
+        product: product,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        error: "Error",
+        details: error.message,
+      });
+    }
+  }
+);
+
+app.post("/deleteCategory", async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const products = await db("products").where({ fk_products_categories: id });
+
+    if (products.length > 0) {
+      // Eliminar las imágenes de los productos
+      for (const product of products) {
+        const imagePath = path.join(__dirname, "uploads", product.image);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath); // Eliminar el archivo
+        }
+      }
+    }
+
+    await db("categories").where({ id }).del();
+
+    res.status(200).json({
+      message: "Categoría eliminada",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post(
+  "/editProduct",
+  upload.fields([{ name: "image", maxCount: 1 }]),
+  [
+    body("model").isString().isLength({ max: 255 }).notEmpty(),
+    body("description").isString().isLength({ max: 255 }).notEmpty(),
+    body("brand").isString().isLength({ max: 255 }).notEmpty(),
+    body("price").isString().isLength({ max: 255 }).notEmpty(),
+    body("stock").isString().isLength({ max: 255 }).notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { id, old_image, model, description, brand, price, stock } =
+        req.body;
+
+      let imagePath;
+
+      if (!old_image) {
+        const existingImage = await db("products")
+          .select("image")
+          .where({ id })
+          .first();
+
+        const existingImagePath = path.join(
+          __dirname,
+          "uploads",
+          existingImage.image
+        );
+        if (fs.existsSync(existingImagePath)) {
+          fs.unlinkSync(existingImagePath);
+        }
+
+        imagePath = path.relative(
+          path.join(__dirname, "uploads"),
+          req.files.image[0].path
+        );
+      } else {
+        imagePath = old_image;
+      }
+
+      await db("products")
+        .where({ id })
+        .update({
+          model,
+          image: imagePath,
+          description,
+          brand,
+          price: Number(price),
+          stock,
+        });
+
+      res
+        .status(201)
+        .json({ message: "Producto editado con éxito", image: imagePath });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        error: "Error",
+        details: error.message,
+      });
+    }
+  }
+);
 
 // Iniciar el servidor
 const PORT = process.env.DB_PORT;

@@ -11,6 +11,8 @@ import Order from "./business/Order";
 import Login from "./components/Login";
 import SignIn from "./components/SignIn";
 import Partners from "./partners/Partners";
+import SignBusiness from "./partners/signBusiness/SignBusiness";
+import Dashboard from "./dashboard/Dashboard";
 
 const Stack = createStackNavigator();
 
@@ -70,6 +72,16 @@ export default function HomeScreen() {
       <Stack.Screen
         name="Partners"
         component={Partners}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SignBusiness"
+        component={SignBusiness}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Dashboard"
+        component={Dashboard}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

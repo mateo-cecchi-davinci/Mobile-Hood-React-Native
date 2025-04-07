@@ -9,21 +9,29 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Carousel from "./Carousel";
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.APP_URL;
 
 export default function Partners() {
   const navigation = useNavigation();
+  const route = useRoute();
 
   const scrollViewRef = useRef(null);
   const formRef = useRef(null);
 
+  const { user } = route.params;
+
   const [businessName, setBusinessName] = useState("");
-  const [name, setName] = useState("");
-  const [lastname, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(user.name);
+  const [lastname, setLastName] = useState(user.lastname);
+  const [phone, setPhone] = useState(String(user.phone));
+  const [email, setEmail] = useState(user.email);
+
+  const [error, setError] = useState();
 
   const [firstFaq, setFirstFaq] = useState(false);
   const [secondFaq, setSecondFaq] = useState(false);
@@ -37,7 +45,24 @@ export default function Partners() {
   const scrollToForm = () => {
     // Usamos measure para obtener la posición exacta del formulario
     formRef.current.measure((y, pageY) => {
-      scrollViewRef.current.scrollTo({ y: pageY - 160, animated: true });
+      scrollViewRef.current.scrollTo({ y: pageY - 140, animated: true });
+    });
+  };
+
+  const handleFormSubmit = () => {
+    if (!businessName || !name || !lastname || !email || !phone) {
+      setError("-Todos los campos son necesarios");
+      return;
+    }
+
+    setError();
+
+    navigation.navigate("SignBusiness", {
+      businessName: businessName,
+      name: name,
+      lastname: lastname,
+      email: email,
+      phone: phone,
     });
   };
 
@@ -79,37 +104,51 @@ export default function Partners() {
               </Text>
               durante los primeros 30 días
             </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre del local *"
-              value={businessName}
-              onChangeText={setBusinessName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre *"
-              value={name}
-              onChangeText={setName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Apellido *"
-              value={lastname}
-              onChangeText={setLastName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Teléfono *"
-              value={phone}
-              onChangeText={setPhone}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email *"
-              value={email}
-              onChangeText={setEmail}
-            />
-            <TouchableOpacity style={styles.form_btn}>
+            {error && <Text style={styles.error}>{error}</Text>}
+            <View>
+              <Text style={styles.label}>Nombre del local</Text>
+              <TextInput
+                style={styles.input}
+                value={businessName}
+                onChangeText={setBusinessName}
+              />
+            </View>
+            <View>
+              <Text style={styles.label}>Nombre</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
+            <View>
+              <Text style={styles.label}>Apellido</Text>
+              <TextInput
+                style={styles.input}
+                value={lastname}
+                onChangeText={setLastName}
+              />
+            </View>
+            <View>
+              <Text style={styles.label}>Teléfono</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+              />
+            </View>
+            <View>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={() => handleFormSubmit()}
+              style={styles.form_btn}
+            >
               <Text style={styles.form_btn_text}>Comenzar</Text>
             </TouchableOpacity>
           </View>
@@ -504,13 +543,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffe438",
     marginVertical: 16,
   },
+  error: {
+    color: "#e31010",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  label: {
+    marginStart: 10,
+    paddingHorizontal: 5,
+    color: "#6b6b6b",
+    backgroundColor: "#f8f9fa",
+    position: "absolute",
+    top: -2,
+    zIndex: 1,
+  },
   input: {
     width: "100%",
     borderWidth: 1,
     borderColor: "dark(rgb(215, 215, 215), rgb(215, 215, 215))",
     borderRadius: 5,
     paddingHorizontal: 16,
-    marginVertical: 6,
+    marginVertical: 10,
   },
   form_btn: {
     backgroundColor: "#e31010",

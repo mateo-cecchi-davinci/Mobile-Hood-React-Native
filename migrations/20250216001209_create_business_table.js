@@ -10,7 +10,7 @@ exports.up = function (knex) {
     table.string("frontPage", 255).notNullable();
     table.string("street", 255).notNullable();
     table.integer("number").notNullable();
-    table.string("category", 255).notNullable();
+    table.string("category", 255);
     table.bigInteger("fk_businesses_users").unsigned().notNullable();
     table
       .foreign("fk_businesses_users")
