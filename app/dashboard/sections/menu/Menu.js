@@ -31,7 +31,6 @@ export default function Menu({ business, setBusiness }) {
   const [addCategoryModal, setAddCategoryModal] = useState(false);
   const [addProductModal, setAddProductModal] = useState(false);
   const [editCategoryModal, setEditCategoryModal] = useState(false);
-  const [editProductModal, setEditProductModal] = useState(false);
   const [deleteCategoryModal, setDeleteCategoryModal] = useState(false);
 
   const handleCategoryMenu = () => {
@@ -78,10 +77,6 @@ export default function Menu({ business, setBusiness }) {
 
   const toggleEditCategoryModal = () => {
     setEditCategoryModal(!editCategoryModal);
-  };
-
-  const toggleEditProductModal = () => {
-    setEditProductModal(!editProductModal);
   };
 
   const toggleDeleteCategoryModal = () => {
@@ -188,8 +183,6 @@ export default function Menu({ business, setBusiness }) {
                 setBusiness={setBusiness}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
-                visible={editProductModal}
-                onClose={toggleEditProductModal}
               />
             ))}
           </>

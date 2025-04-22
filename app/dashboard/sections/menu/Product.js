@@ -25,10 +25,9 @@ export default function Product({
   setBusiness,
   selectedCategory,
   setSelectedCategory,
-  visible,
-  onClose,
 }) {
   const [productState, setProductState] = useState(!!product.is_active);
+  const [editProductModal, setEditProductModal] = useState(false);
 
   const editProductState = () => {
     fetch(`${API_URL}/editProductState`, {
@@ -70,49 +69,51 @@ export default function Product({
     setProductState((prev) => !prev);
   };
 
+  const toggleEditProductModal = () => {
+    setEditProductModal(!editProductModal);
+  };
+
   return (
-    <>
-      <View key={product.id} style={styles.product_container}>
-        <Image
-          source={getImage(product.image)}
-          style={styles.product_image}
-          resizeMode="contain"
-        />
-        <Text style={styles.product_model}>{product.model}</Text>
-        <Text style={{ color: "#6b6b6b" }}>{product.description}</Text>
-        <View style={styles.product_row}>
-          <Text>${product.price}</Text>
-          <View style={styles.options_row}>
-            <Switch
-              trackColor={{ false: "#767577", true: "#81b0ff" }}
-              thumbColor="#f8f9fa"
-              ios_backgroundColor="#3e3e3e"
-              onValueChange={() => editProductState()}
-              value={productState}
+    <View key={product.id} style={styles.product_container}>
+      <Image
+        source={getImage(product.image)}
+        style={styles.product_image}
+        resizeMode="contain"
+      />
+      <Text style={styles.product_model}>{product.model}</Text>
+      <Text style={{ color: "#6b6b6b" }}>{product.description}</Text>
+      <View style={styles.product_row}>
+        <Text>${product.price}</Text>
+        <View style={styles.options_row}>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor="#f8f9fa"
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() => editProductState()}
+            value={productState}
+          />
+          <TouchableOpacity onPress={() => toggleEditProductModal()}>
+            <FontAwesome5
+              name="edit"
+              size={18}
+              color="black"
+              style={{ marginHorizontal: 20 }}
             />
-            <TouchableOpacity onPress={() => onClose()}>
-              <FontAwesome5
-                name="edit"
-                size={18}
-                color="black"
-                style={{ marginHorizontal: 20 }}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => {}}>
-              <MaterialIcons name="delete" size={24} color="black" />
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {}}>
+            <MaterialIcons name="delete" size={24} color="black" />
+          </TouchableOpacity>
         </View>
       </View>
       <EditProductModal
-        visible={visible}
-        onClose={onClose}
+        visible={editProductModal}
+        onClose={toggleEditProductModal}
         setBusiness={setBusiness}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         product={product}
       />
-    </>
+    </View>
   );
 }
 
