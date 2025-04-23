@@ -681,42 +681,6 @@ app.get("/dashboard/:id", async (req, res) => {
   }
 });
 
-app.post("/editCategoryState", async (req, res) => {
-  try {
-    const { id, categoryState } = req.body;
-
-    await db("categories").where({ id }).update({ is_active: categoryState });
-
-    res.status(201).json({
-      message: "Estado actualizado",
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      error: "Error",
-      details: error.message,
-    });
-  }
-});
-
-app.post("/editProductState", async (req, res) => {
-  try {
-    const { id, productState } = req.body;
-
-    await db("products").where({ id }).update({ is_active: productState });
-
-    res.status(201).json({
-      message: "Estado actualizado",
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      error: "Error",
-      details: error.message,
-    });
-  }
-});
-
 app.post(
   "/addCategory",
   [body("name").isString().isLength({ max: 255 }).notEmpty()],
@@ -761,6 +725,24 @@ app.post(
   }
 );
 
+app.post("/editCategoryState", async (req, res) => {
+  try {
+    const { id, categoryState } = req.body;
+
+    await db("categories").where({ id }).update({ is_active: categoryState });
+
+    res.status(201).json({
+      message: "Estado actualizado",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
 app.post(
   "/editCategory",
   [body("name").isString().isLength({ max: 255 }).notEmpty()],
@@ -790,6 +772,36 @@ app.post(
     }
   }
 );
+
+app.post("/deleteCategory", async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const products = await db("products").where({ fk_products_categories: id });
+
+    if (products.length > 0) {
+      // Eliminar las imágenes de los productos
+      for (const product of products) {
+        const imagePath = path.join(__dirname, "uploads", product.image);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath); // Eliminar el archivo
+        }
+      }
+    }
+
+    await db("categories").where({ id }).del();
+
+    res.status(200).json({
+      message: "Categoría eliminada",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
 
 app.post(
   "/addProduct",
@@ -852,26 +864,14 @@ app.post(
   }
 );
 
-app.post("/deleteCategory", async (req, res) => {
+app.post("/editProductState", async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id, productState } = req.body;
 
-    const products = await db("products").where({ fk_products_categories: id });
+    await db("products").where({ id }).update({ is_active: productState });
 
-    if (products.length > 0) {
-      // Eliminar las imágenes de los productos
-      for (const product of products) {
-        const imagePath = path.join(__dirname, "uploads", product.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath); // Eliminar el archivo
-        }
-      }
-    }
-
-    await db("categories").where({ id }).del();
-
-    res.status(200).json({
-      message: "Categoría eliminada",
+    res.status(201).json({
+      message: "Estado actualizado",
     });
   } catch (error) {
     console.error("Error:", error);
@@ -950,6 +950,29 @@ app.post(
     }
   }
 );
+
+app.post("/deleteProduct", async (req, res) => {
+  try {
+    const { product } = req.body;
+
+    const imagePath = path.join(__dirname, "uploads", product.image);
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    await db("products").where({ id: product.id }).del();
+
+    res.status(200).json({
+      message: "Producto eliminado",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
 
 // Iniciar el servidor
 const PORT = process.env.DB_PORT;

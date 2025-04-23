@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import EditProductModal from "./EditProductModal";
+import DeleteProductModal from "./DeleteProductModal";
 
 const API_URL = Constants.expoConfig.extra.APP_URL;
 
@@ -28,6 +29,7 @@ export default function Product({
 }) {
   const [productState, setProductState] = useState(!!product.is_active);
   const [editProductModal, setEditProductModal] = useState(false);
+  const [deleteProductModal, setDeleteProductModal] = useState(false);
 
   const editProductState = () => {
     fetch(`${API_URL}/editProductState`, {
@@ -73,6 +75,10 @@ export default function Product({
     setEditProductModal(!editProductModal);
   };
 
+  const toggleDeleteProductModal = () => {
+    setDeleteProductModal(!deleteProductModal);
+  };
+
   return (
     <View key={product.id} style={styles.product_container}>
       <Image
@@ -100,7 +106,7 @@ export default function Product({
               style={{ marginHorizontal: 20 }}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}}>
+          <TouchableOpacity onPress={() => toggleDeleteProductModal()}>
             <MaterialIcons name="delete" size={24} color="black" />
           </TouchableOpacity>
         </View>
@@ -108,6 +114,14 @@ export default function Product({
       <EditProductModal
         visible={editProductModal}
         onClose={toggleEditProductModal}
+        setBusiness={setBusiness}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        product={product}
+      />
+      <DeleteProductModal
+        visible={deleteProductModal}
+        onClose={toggleDeleteProductModal}
         setBusiness={setBusiness}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}

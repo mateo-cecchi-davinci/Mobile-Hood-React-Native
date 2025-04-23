@@ -12,8 +12,6 @@ import * as ImagePicker from "expo-image-picker";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig.extra.APP_URL;
-
 export default function EditProductModal({
   visible,
   onClose,
@@ -22,6 +20,8 @@ export default function EditProductModal({
   setSelectedCategory,
   product,
 }) {
+  const API_URL = Constants.expoConfig.extra.APP_URL;
+
   const [model, setModel] = useState(product.model);
   const [image, setImage] = useState(product.image);
   const [description, setDescription] = useState(product.description);
@@ -106,28 +106,29 @@ export default function EditProductModal({
 
       if (response.ok) {
         setBusiness((prev) => {
-          const updatedCategories = prev.categories.map((category) =>
-            category.id === selectedCategory.id
-              ? {
-                  ...category,
-                  products: category.products.map((p) =>
-                    p.id === product.id
-                      ? {
-                          ...p,
-                          model,
-                          image: data.image,
-                          description,
-                          price,
-                          brand,
-                          stock,
-                        }
-                      : p
-                  ),
-                }
-              : category
-          );
-
-          return { ...prev, categories: updatedCategories };
+          return {
+            ...prev,
+            categories: prev.categories.map((category) =>
+              category.id === selectedCategory.id
+                ? {
+                    ...category,
+                    products: category.products.map((p) =>
+                      p.id === product.id
+                        ? {
+                            ...p,
+                            model,
+                            image: data.image,
+                            description,
+                            price,
+                            brand,
+                            stock,
+                          }
+                        : p
+                    ),
+                  }
+                : category
+            ),
+          };
         });
 
         setSelectedCategory((prev) => {

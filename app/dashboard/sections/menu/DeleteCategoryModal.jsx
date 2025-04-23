@@ -11,8 +11,6 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig.extra.APP_URL;
-
 export default function DeleteCategoryModal({
   visible,
   onClose,
@@ -20,6 +18,8 @@ export default function DeleteCategoryModal({
   selectedCategory,
   setSelectedCategory,
 }) {
+  const API_URL = Constants.expoConfig.extra.APP_URL;
+
   const deleteCategory = async () => {
     try {
       const response = await fetch(`${API_URL}/deleteCategory`, {
@@ -34,10 +34,12 @@ export default function DeleteCategoryModal({
 
       if (response.ok) {
         setBusiness((prev) => {
-          const updatedCategories = prev.categories.filter(
-            (category) => category.id !== selectedCategory.id
-          );
-          return { ...prev, categories: updatedCategories };
+          return {
+            ...prev,
+            categories: prev.categories.filter(
+              (category) => category.id !== selectedCategory.id
+            ),
+          };
         });
 
         setSelectedCategory();
