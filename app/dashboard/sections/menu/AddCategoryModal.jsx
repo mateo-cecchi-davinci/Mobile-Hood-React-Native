@@ -11,14 +11,13 @@ import {
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig.extra.APP_URL;
-
 export default function AddCategoryModal({
   visible,
   onClose,
   business,
   setBusiness,
 }) {
+  const API_URL = Constants.expoConfig.extra.APP_URL;
   const [name, setName] = useState();
 
   const addCategory = async () => {

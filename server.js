@@ -637,41 +637,59 @@ app.get("/dashboard/:id", async (req, res) => {
 
     const business = await db("businesses")
       .where({ fk_businesses_users: id })
-      .then(async (businesses) => {
-        return Promise.all(
-          businesses.map(async (business) => {
-            const categories = await db("categories")
-              .where("fk_categories_businesses", business.id)
-              .then(async (categories) => {
-                return Promise.all(
-                  categories.map(async (category) => {
-                    const products = await db("products").where(
-                      "fk_products_categories",
-                      category.id
-                    );
-                    return { ...category, products };
-                  })
+      .first()
+      .then(async (business) => {
+        if (!business) return null;
+
+        const categories = await db("categories")
+          .where("fk_categories_businesses", business.id)
+          .then(async (categories) => {
+            return Promise.all(
+              categories.map(async (category) => {
+                const products = await db("products").where(
+                  "fk_products_categories",
+                  category.id
                 );
-              });
-
-            const orders = await db("orders").where("business_id", business.id);
-
-            const business_hours = await db("business_hours").where(
-              "fk_business_hours_business",
-              business.id
+                return { ...category, products };
+              })
             );
+          });
 
-            return {
-              ...business,
-              categories,
-              orders,
-              business_hours,
-            };
-          })
+        const orders = await db("orders")
+          .where("business_id", business.id)
+          .then(async (orders) =>
+            Promise.all(
+              orders.map(async (order) => ({
+                ...order,
+                products: await db("orders_products")
+                  .where("fk_orders_products_orders", order.id)
+                  .join(
+                    "products",
+                    "fk_orders_products_products",
+                    "products.id"
+                  )
+                  .select("products.*", "orders_products.amount"),
+                user: await db("users")
+                  .where("id", order.fk_orders_users)
+                  .first(),
+              }))
+            )
+          );
+
+        const business_hours = await db("business_hours").where(
+          "fk_business_hours_business",
+          business.id
         );
+
+        return {
+          ...business,
+          categories,
+          orders,
+          business_hours,
+        };
       });
 
-    res.json(business[0]);
+    res.json(business);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({
@@ -964,6 +982,42 @@ app.post("/deleteProduct", async (req, res) => {
 
     res.status(200).json({
       message: "Producto eliminado",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post("/acceptOrder", async (req, res) => {
+  try {
+    const { order } = req.body;
+
+    await db("orders").where({ id: order.id }).update({ state: "Aceptado" });
+
+    res.status(200).json({
+      message: "Orden aceptada",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post("/deliverOrder", async (req, res) => {
+  try {
+    const { order } = req.body;
+
+    await db("orders").where({ id: order.id }).update({ state: "Entregado" });
+
+    res.status(200).json({
+      message: "Orden entregada",
     });
   } catch (error) {
     console.error("Error:", error);

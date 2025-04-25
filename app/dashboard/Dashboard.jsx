@@ -17,6 +17,9 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Menu from "./sections/menu/Menu";
+import RecentOrders from "./sections/recentOrders/RecentOrders";
+import IncomingOrders from "./sections/incomingOrders/IncomingOrders";
+import Hours from "./sections/hours/Hours";
 
 export default function Dashboard() {
   const route = useRoute();
@@ -25,10 +28,6 @@ export default function Dashboard() {
   const navigation = useNavigation();
   const [sidebar, setSideBar] = useState(false);
   const [section, setSection] = useState(0);
-
-  const handleSideBar = () => {
-    setSideBar(!sidebar);
-  };
 
   const logout = async () => {
     await AsyncStorage.removeItem("token");
@@ -40,7 +39,7 @@ export default function Dashboard() {
     <ScrollView>
       <View style={{ minHeight: "100%" }}>
         <View style={styles.nav}>
-          <TouchableOpacity onPress={() => handleSideBar()}>
+          <TouchableOpacity onPress={() => setSideBar(!sidebar)}>
             <Entypo name="menu" size={24} color="black" />
           </TouchableOpacity>
           <View style={styles.nav_user_info_row}>
@@ -64,7 +63,7 @@ export default function Dashboard() {
                   style={styles.sidebar_header_img}
                 />
                 <Text style={styles.sidebar_title}>Dashboard</Text>
-                <TouchableOpacity onPress={() => handleSideBar()}>
+                <TouchableOpacity onPress={() => setSideBar(!sidebar)}>
                   <AntDesign name="arrowleft" size={18} color="#f8f9fa" />
                 </TouchableOpacity>
               </View>
@@ -84,7 +83,13 @@ export default function Dashboard() {
                 <Entypo name="home" size={18} color="black" />
                 <Text style={styles.sidebar_row_item}>Inicio</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => {}} style={styles.sidebar_row}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSection(0);
+                  setSideBar(!sidebar);
+                }}
+                style={styles.sidebar_row}
+              >
                 <FontAwesome5
                   name="book"
                   size={14}
@@ -93,11 +98,23 @@ export default function Dashboard() {
                 />
                 <Text style={styles.sidebar_row_item}>Menú</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => {}} style={styles.sidebar_row}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSection(1);
+                  setSideBar(!sidebar);
+                }}
+                style={styles.sidebar_row}
+              >
                 <MaterialIcons name="cached" size={18} color="black" />
                 <Text style={styles.sidebar_row_item}>Pedidos en curso</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => {}} style={styles.sidebar_row}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSection(2);
+                  setSideBar(!sidebar);
+                }}
+                style={styles.sidebar_row}
+              >
                 <AntDesign
                   name="reload1"
                   size={15}
@@ -107,7 +124,13 @@ export default function Dashboard() {
                 <Text style={styles.sidebar_row_item}>Pedidos recientes</Text>
               </TouchableOpacity>
               <View style={styles.line}></View>
-              <TouchableOpacity onPress={() => {}} style={styles.sidebar_row}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSection(3);
+                  setSideBar(!sidebar);
+                }}
+                style={styles.sidebar_row}
+              >
                 <Ionicons name="alarm" size={18} color="black" />
                 <Text style={styles.sidebar_row_item}>Horarios</Text>
               </TouchableOpacity>
@@ -133,7 +156,18 @@ export default function Dashboard() {
             </View>
           </View>
         )}
-        <Menu business={businessData} setBusiness={setBusiness} />
+        {section === 0 && (
+          <Menu business={businessData} setBusiness={setBusiness} />
+        )}
+        {section === 1 && (
+          <IncomingOrders business={businessData} setBusiness={setBusiness} />
+        )}
+        {section === 2 && (
+          <RecentOrders business={businessData} setBusiness={setBusiness} />
+        )}
+        {section === 3 && (
+          <Hours business={businessData} setBusiness={setBusiness} />
+        )}
       </View>
     </ScrollView>
   );
