@@ -101,7 +101,7 @@ export default function UserProfile() {
           </View>
           <Entypo name="chevron-right" size={16} color="black" />
         </TouchableOpacity>
-        {user.is_partner && (
+        {!!user.is_partner && (
           <TouchableOpacity
             style={styles.menu_btn_container}
             onPress={() => handleDashboard()}
@@ -120,7 +120,7 @@ export default function UserProfile() {
         )}
         <TouchableOpacity
           style={styles.menu_btn_container}
-          onPress={() => logout}
+          onPress={() => logout()}
         >
           <View style={styles.menu_btn_text_container}>
             <AntDesign
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    boxShadow: "0 5 10 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 5px 10px rgba(0, 0, 0, 0.15)",
   },
   user_img: {
     fontSize: 24,

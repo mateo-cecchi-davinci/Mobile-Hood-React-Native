@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "dark(rgb(225, 225, 225), rgb(225, 225, 225))",
-    boxShadow: "0 5 10 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 5px 10px rgba(0, 0, 0, 0.15)",
   },
   product_model: {
     fontSize: 16,

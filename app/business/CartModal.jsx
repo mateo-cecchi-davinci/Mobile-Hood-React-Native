@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
     marginBottom: 16,
-    boxShadow: "0 2 4 rgba(0, 0, 0, 0.075)",
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.075)",
   },
   business_logo_container: {
     width: 36,

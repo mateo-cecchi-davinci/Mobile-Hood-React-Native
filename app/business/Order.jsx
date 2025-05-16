@@ -60,7 +60,7 @@ export default function Order() {
         },
         auto_return: "approved",
         notification_url:
-          "https://721a-45-186-25-100.ngrok-free.app/mpPaymentNotification",
+          "https://880a-45-186-25-188.ngrok-free.app/mpPaymentNotification",
       };
 
       try {
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.175)",
     borderRadius: 6,
-    boxShadow: "0 8 16 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.15)",
   },
   step_container: {
     flexDirection: "row",
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.175)",
     borderRadius: 6,
-    boxShadow: "0 8 16 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.15)",
   },
   payment_card_title: {
     textAlign: "center",

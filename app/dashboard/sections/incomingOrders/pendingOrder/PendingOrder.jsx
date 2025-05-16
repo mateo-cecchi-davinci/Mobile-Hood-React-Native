@@ -7,7 +7,7 @@ export default function PendingOrders({
   time,
   orderNumber,
   productsAmount,
-  businessName,
+  business,
   setBusiness,
   setPendingOrders,
   setAcceptedOrders,
@@ -42,7 +42,7 @@ export default function PendingOrders({
         orderNumber={orderNumber}
         productsAmount={productsAmount}
         time={time}
-        businessName={businessName}
+        business={business}
         setBusiness={setBusiness}
         setPendingOrders={setPendingOrders}
         setAcceptedOrders={setAcceptedOrders}
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderRadius: 3,
-    boxShadow: "0 8 16 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.15)",
   },
   order_number: {
     color: "#f8f9fa",

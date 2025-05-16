@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    boxShadow: "0 -8 16 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px -8px 16px rgba(0, 0, 0, 0.15)",
   },
   apply_filters_btn: {
     backgroundColor: "#e31010",

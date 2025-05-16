@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   form: {
     backgroundColor: "white",
     padding: 20,
-    boxShadow: "0 5 10 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 5px 10px rgba(0, 0, 0, 0.15)",
     marginTop: 40,
     marginBottom: 20,
   },

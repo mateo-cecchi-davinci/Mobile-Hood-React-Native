@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  Modal,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -84,7 +84,7 @@ export default function Menu({ business, setBusiness }) {
   };
 
   return (
-    <>
+    <ScrollView contentContainerStyle={{ paddingBottom: 150 }}>
       <View style={styles.container}>
         <TouchableOpacity
           onPress={() => toggleAddCategoryModal()}
@@ -220,7 +220,7 @@ export default function Menu({ business, setBusiness }) {
           />
         </>
       )}
-    </>
+    </ScrollView>
   );
 }
 

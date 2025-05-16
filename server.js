@@ -13,6 +13,11 @@ const db = knex(require("./knexfile.js"));
 const app = express();
 const axios = require("axios");
 
+const WebSocket = require("ws");
+
+// Crear un servidor WebSocket
+const wss = new WebSocket.Server({ noServer: true });
+
 const { body, validationResult } = require("express-validator");
 const SECRET_KEY = process.env.SECRET_KEY;
 
@@ -444,7 +449,82 @@ app.post("/mpPaymentNotification", async (req, res) => {
       }
     }
 
+    // Emitir el evento de nuevo pedido
+    notifyNewOrder({
+      id: order,
+      state: "Pendiente",
+      payment,
+      created_at: new Date(),
+      business_id: business.id,
+      user,
+      items,
+    });
+
     res.sendStatus(200);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Hubo un error" });
+  }
+});
+
+app.post("/testWebSocket", async (req, res) => {
+  try {
+    const items = [
+      {
+        id: 1,
+        quantity: 1,
+      },
+      {
+        id: 2,
+        quantity: 2,
+      },
+      {
+        id: 3,
+        quantity: 3,
+      },
+    ];
+
+    const [order] = await db("orders").insert(
+      {
+        state: "Pendiente",
+        fk_orders_users: 8,
+        payment: 44000,
+        created_at: new Date(),
+        business_id: 1,
+      },
+      ["id"]
+    );
+
+    for (const item of items) {
+      const product = await db("products")
+        .where({ id: item.id, is_active: true })
+        .andWhere("stock", ">", 0)
+        .first();
+
+      if (product) {
+        // Asociar el producto con la orden
+        await db("orders_products").insert({
+          fk_orders_products_orders: order,
+          fk_orders_products_products: product.id,
+          amount: item.quantity,
+        });
+      }
+    }
+
+    notifyNewOrder({
+      id: order,
+      state: "Pendiente",
+      fk_orders_users: 8,
+      payment: 44000,
+      created_at: new Date(),
+      updated_at: new Date(),
+      business_id: 1,
+      products: await db("orders_products")
+        .where("fk_orders_products_orders", order)
+        .join("products", "fk_orders_products_products", "products.id")
+        .select("products.*", "orders_products.amount"),
+      user: await db("users").where("id", 8).first(),
+    });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Hubo un error" });
@@ -657,6 +737,7 @@ app.get("/dashboard/:id", async (req, res) => {
 
         const orders = await db("orders")
           .where("business_id", business.id)
+          .orderBy("updated_at", "desc")
           .then(async (orders) =>
             Promise.all(
               orders.map(async (order) => ({
@@ -996,10 +1077,32 @@ app.post("/acceptOrder", async (req, res) => {
   try {
     const { order } = req.body;
 
-    await db("orders").where({ id: order.id }).update({ state: "Aceptado" });
+    await db("orders")
+      .where({ id: order.id })
+      .update({ state: "Aceptado", updated_at: new Date() });
 
     res.status(200).json({
       message: "Orden aceptada",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
+app.post("/rejectOrder", async (req, res) => {
+  try {
+    const { order } = req.body;
+
+    await db("orders")
+      .where({ id: order.id })
+      .update({ state: "Rechazado", updated_at: new Date() });
+
+    res.status(200).json({
+      message: "Orden rechazada",
     });
   } catch (error) {
     console.error("Error:", error);
@@ -1014,7 +1117,9 @@ app.post("/deliverOrder", async (req, res) => {
   try {
     const { order } = req.body;
 
-    await db("orders").where({ id: order.id }).update({ state: "Entregado" });
+    await db("orders")
+      .where({ id: order.id })
+      .update({ state: "Entregado", updated_at: new Date() });
 
     res.status(200).json({
       message: "Orden entregada",
@@ -1028,10 +1133,87 @@ app.post("/deliverOrder", async (req, res) => {
   }
 });
 
+app.post("/acceptUpdatedOrder", async (req, res) => {
+  try {
+    const { order, productsWithoutStock, newProducts } = req.body;
+
+    let total = order.payment;
+
+    if (newProducts.length > 0) {
+      for (const product of newProducts) {
+        const exists = await db("orders_products")
+          .where({
+            fk_orders_products_orders: order.id,
+            fk_orders_products_products: product.id,
+          })
+          .first();
+
+        if (!exists) {
+          await db("orders_products").insert({
+            fk_orders_products_orders: order.id,
+            fk_orders_products_products: product.id,
+            amount: product.amount,
+          });
+
+          total += product.price * product.amount;
+        }
+      }
+    }
+
+    if (productsWithoutStock.length > 0) {
+      for (const product of productsWithoutStock) {
+        await db("orders_products")
+          .where({
+            fk_orders_products_orders: order.id,
+            fk_orders_products_products: product.id,
+          })
+          .del();
+
+        total -= product.price * product.amount;
+      }
+    }
+
+    let updated_at = new Date();
+
+    await db("orders")
+      .where({ id: order.id })
+      .update({ payment: total, state: "Aceptado", updated_at });
+
+    res.status(200).json({
+      message: "Orden aceptada",
+      updated_at,
+      total,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Error",
+      details: error.message,
+    });
+  }
+});
+
 // Iniciar el servidor
 const PORT = process.env.DB_PORT;
-app.listen(PORT, () => {
+
+// Integrar WebSocket con el servidor HTTP
+const server = app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+server.on("upgrade", (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
+
+// Emitir un evento cuando se cree un nuevo pedido
+const notifyNewOrder = (order) => {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ type: "NEW_ORDER", order }));
+    }
+  });
+};
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

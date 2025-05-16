@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   product_info: {
     shadowColor: "#000",
-    boxShadow: "0 8 16 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.15)",
     width: "100%",
     paddingTop: 24,
     paddingStart: 24,
@@ -210,10 +210,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 20,
-  },
-  amount_symbol: {
-    fontSize: 16,
-    fontWeight: "bold",
   },
   amount_number: {
     fontSize: 14,

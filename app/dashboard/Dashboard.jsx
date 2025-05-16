@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -36,7 +29,7 @@ export default function Dashboard() {
   };
 
   return (
-    <ScrollView>
+    <View>
       <View style={{ minHeight: "100%" }}>
         <View style={styles.nav}>
           <TouchableOpacity onPress={() => setSideBar(!sidebar)}>
@@ -162,14 +155,12 @@ export default function Dashboard() {
         {section === 1 && (
           <IncomingOrders business={businessData} setBusiness={setBusiness} />
         )}
-        {section === 2 && (
-          <RecentOrders business={businessData} setBusiness={setBusiness} />
-        )}
+        {section === 2 && <RecentOrders business={businessData} />}
         {section === 3 && (
           <Hours business={businessData} setBusiness={setBusiness} />
         )}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 

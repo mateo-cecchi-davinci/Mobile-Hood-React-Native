@@ -127,7 +127,7 @@ export default function Orders() {
     const statusMatch =
       !filter.status || order.state === filter.status.slice(0, -1);
 
-    const periodMatch = checkDateInPeriod(order.created_at, filter.period);
+    const periodMatch = checkDateInPeriod(order.updated_at, filter.period);
 
     return statusMatch && periodMatch;
   });

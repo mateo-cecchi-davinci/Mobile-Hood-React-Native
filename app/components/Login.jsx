@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 5,
-    boxShadow: "0 5 10 rgba(0, 0, 0, 0.15)",
+    boxShadow: "0px 5px 10px rgba(0, 0, 0, 0.15)",
   },
   input: {
     width: "100%",
